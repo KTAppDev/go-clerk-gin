@@ -1,1 +1,2 @@
-# go-clerk-gin
+Plan to use for golang backend.
+Works fine.
