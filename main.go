@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/clerkinc/clerk-sdk-go/clerk"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +15,14 @@ func main() {
 
 	// Use Gin engine
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // replace with your frontend url
+		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	// Middleware to verify Session Token from Authorization header
 	verifyToken := func(c *gin.Context) {
@@ -36,6 +45,7 @@ func main() {
 	}
 
 	// Protected route for saying hello
+	// router.GEt takes three items: path middleware and handler
 	router.GET("/albums", verifyToken, func(c *gin.Context) {
 		// check if this makes a new request to the server or is it done on server
 		user, err := client.Users().Read(c.MustGet("user").(string))
