@@ -17,13 +17,14 @@ func main() {
 	if err != nil {
 		fmt.Println("Error loading .env file")
 	}
+
 	key := os.Getenv("CLERK_SECRET_KEY")
 	client, _ := clerk.NewClient(key)
 
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"}, // replace with your frontend url
+		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
