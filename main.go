@@ -3,17 +3,23 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/clerkinc/clerk-sdk-go/clerk"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	client, _ := clerk.NewClient("sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+	key := os.Getenv("CLERK_SECRET_KEY")
+	client, _ := clerk.NewClient(key)
 
-	// Use Gin engine
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
@@ -46,8 +52,10 @@ func main() {
 
 	// Protected route for saying hello
 	// router.GEt takes three items: path middleware and handler
-	router.GET("/albums", verifyToken, func(c *gin.Context) {
+	router.GET("/protected", verifyToken, func(c *gin.Context) {
 		// check if this makes a new request to the server or is it done on server
+		email := client.Emails()
+		fmt.Println(email) // print out emails)
 		user, err := client.Users().Read(c.MustGet("user").(string))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving user"})
