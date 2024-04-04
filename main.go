@@ -38,6 +38,9 @@ func main() {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+		// NOTE: Get cookies
+		//  cookieToken, _ := c.Request.Cookie("__session")
+		// clientUat, _ := c.Request.Cookie("__client_uat")
 
 		sessionToken = strings.TrimPrefix(sessionToken, "Bearer ")
 		sessClaims, err := client.VerifyToken(sessionToken)
