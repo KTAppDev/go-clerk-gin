@@ -1,3 +1,5 @@
+// main.go
+
 package main
 
 import (
@@ -12,17 +14,24 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// main is the entry point of the application
 func main() {
+	// Load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println("Error loading .env file")
 	}
 
+	// Get Clerk secret key from environment variable
 	key := os.Getenv("CLERK_SECRET_KEY")
+
+	// Create a new Clerk client instance
 	client, _ := clerk.NewClient(key)
 
+	// Create a new Gin router instance
 	router := gin.Default()
 
+	// Configure CORS middleware
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "DELETE", "OPTIONS"},
@@ -31,43 +40,56 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Middleware to verify Session Token from Authorization header
+	// VerifyToken is a middleware function that verifies the session token
+	// from the Authorization header
 	verifyToken := func(c *gin.Context) {
 		sessionToken := c.Request.Header.Get("Authorization")
 		if sessionToken == "" {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		// NOTE: Get cookies
-		//  cookieToken, _ := c.Request.Cookie("__session")
-		// clientUat, _ := c.Request.Cookie("__client_uat")
 
+		// Remove the "Bearer " prefix from the session token
 		sessionToken = strings.TrimPrefix(sessionToken, "Bearer ")
+
+		// Verify the session token using the Clerk client
 		sessClaims, err := client.VerifyToken(sessionToken)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid session token"})
 			return
 		}
 
+		// Print the session claims
 		fmt.Println(sessClaims.Claims)
-		// Store user info in context for later access
+
+		// Store the user info in the context for later access
 		c.Set("user", sessClaims.Claims.Subject)
 	}
 
-	// Protected route for saying hello
-	// router.GEt takes three items: path middleware and handler
-	router.GET("/protected", verifyToken, func(c *gin.Context) {
-		// check if this makes a new request to the server or is it done on server
+	// Protected is a handler function that returns a welcome message
+	// to the authenticated user
+	protected := func(c *gin.Context) {
+		// Get the user info from the context
+		userID := c.MustGet("user").(string)
+
+		// Get the user's email addresses using the Clerk client
 		email := client.Emails()
-		fmt.Println(email) // print out emails)
-		user, err := client.Users().Read(c.MustGet("user").(string))
+
+		fmt.Println(email) // print out emails
+
+		// Get the user's profile using the Clerk client
+		user, err := client.Users().Read(userID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving user"})
 			return
 		}
 
+		// Return a welcome message to the user
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Welcome, %s!", *user.FirstName)})
-	})
+	}
+
+	// Register the protected route
+	router.GET("/protected", verifyToken, protected)
 
 	// Run the server
 	router.Run(":8080")
